@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1562083590204.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1817997852",
+    "id" : "A5F3323D",
+    "lastKnownWriteTime" : 1413698152,
+    "last_content_update" : 1413698152,
+    "path" : "C:/Users/mkleinsa/Box/Projects/peter_song/QIF_biostat_github/qif/R/qif.r",
+    "project_path" : "R/qif.r",
+    "properties" : {
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
