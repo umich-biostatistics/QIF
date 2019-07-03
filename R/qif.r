@@ -1,4 +1,25 @@
-
+#' Print Function for qif Object
+#'
+#' Print a \code{qif} model object.
+#'
+#' @param x the \code{qif} model object.
+#' @param digits number of digits to print.
+#' @param quote logical, indicating whether or not strings should be printed with
+#' surrounding quotes.
+#' @param prefix string, only \code{""} is implemented.
+#' @param ... further arguments passed to or from other methods.
+#'
+#' @return The invisible object from the arguments.
+#'
+#' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
+#' of Michigan.
+#'
+#' @example
+#'
+#' @seealso \code{\link[base]{print}} \code{\link[qif]{qif}}
+#'
+#' @export
+#'
 print.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ...)
 {
     if(is.null(digits)) digits <- options()$digits else options(digits =
@@ -28,6 +49,30 @@ print.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ...)
     invisible(x)
 }
 
+#' Print the Summary of qif Object
+#'
+#' Prints the summary of a \code{qif} object.
+#'
+#' @param x the \code{qif} model object.
+#' @param digits number of digits to print.
+#' @param quote logical, indicating whether or not strings should be printed with
+#' surrounding quotes.
+#' @param prefix string, only \code{""} is implemented.
+#' @param ... further arguments passed to or from other methods.
+#'
+#' @return The invisible object from the arguments.
+#'
+#' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
+#' of Michigan.
+#'
+#' @return The invisible object from the arguments.
+#'
+#' @example
+#'
+#' @seealso \code{\link[base]{summary}} \code{\link[qif]{qif}}
+#'
+#' @export
+#'
 print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... )
 {
     if(is.null(digits))
@@ -52,6 +97,24 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
     invisible(x)
 }
 
+#' Summary of a qif Object
+#'
+#' Procuce a summary of a \code{qif} object.
+#'
+#' @param object an object for which a summary is desired.
+#' @param correlation binary, include correlation.
+#'
+#' @return The \code{summary.qif} object.
+#'
+#' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
+#' of Michigan.
+#'
+#' @example
+#'
+#' @seealso \code{\link[qif]{qif}}
+#'
+#' @export
+#'
 summary.qif <- function(object, correlation = TRUE, ...)
 {
     coef <- object$coefficients
@@ -264,8 +327,8 @@ if (invfun=="ginv") library(MASS)
         if (nrow(beta) != np) {
             stop("Dim beta != ncol(x)")
         }
-        message("user's initial regression estimate")
-        print(beta)
+        # message("user's initial regression estimate")
+        # print(beta) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
     else {
         message("\n","running glm to get initial regression estimate")
@@ -273,7 +336,7 @@ if (invfun=="ginv") library(MASS)
         mm$b <- mm$tol <- mm$maxiter <- mm$link <- mm$varfun <- mm$corstr <- mm$id <- mm$invfun <- NULL
         mm[[1]] <- as.name("glm")
         beta <- eval(mm, parent.frame())$coef
-	  print(beta)
+	  # print(beta) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         beta <- as.numeric(beta)
     }
     if (length(id) != length(y))
@@ -525,9 +588,9 @@ while(betadiff > tol && iteration < maxiter)
 		arsumg <- arsumg + gi
 
 		if (is.na(arsumc[1,1])) {
-			print(iteration)
-			print(gi)
-			print(arsumc)
+			# print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+			# print(gi)
+			# print(arsumc)
 		}
 
 		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
@@ -552,9 +615,9 @@ while(betadiff > tol && iteration < maxiter)
 		arsumg <- arsumg + gi
 
 if (is.na(arsumc[1,1])) {
-	print(iteration)
-	print(gi)
-	print(arsumc)
+	# print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	# print(gi)
+	# print(arsumc)
 }
 
 		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
