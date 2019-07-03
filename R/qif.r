@@ -1,3 +1,4 @@
+
 print.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ...)
 {
     if(is.null(digits)) digits <- options()$digits else options(digits =
@@ -50,6 +51,7 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
     cat("\nNumber of Iterations: ", x$iteration,"\n")
     invisible(x)
 }
+
 summary.qif <- function(object, correlation = TRUE, ...)
 {
     coef <- object$coefficients
@@ -71,8 +73,112 @@ summary.qif <- function(object, correlation = TRUE, ...)
 }
 
 
-qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NULL, 
-	tol = 1e-8, maxiter = 1000, family = gaussian, corstr = "independence", invfun="finv") 
+#' Function to Solve a Quadratic Inference Function Model
+#'
+#' Produces an object of class "\code{qif}" which is a Quadratic Inference Function fit
+#' of the balanced longitudinal data.
+#'
+#' @param formula a formula expression as for other regression models, of the form
+#' \code{response ~ predictors}. See the documentation of \code{\link[stats]{lm}}
+#' and \code{\link[stats]{formula}} for details.
+#' @param id a vector which identifies the clusters. The length of \code{id} should be
+#' the same as the number of observations. Data are assumed to be sorted so that
+#' observations on a cluster are contiguous rows for all entities in the formula.
+#' @param data an optional data frame in which to interpret the variables occurring
+#' in the \code{formula}, along with the \code{id} variables.
+#' @param b an initial estimate for the parameters.
+#' @param tol the tolerance used in the fitting algorithm.
+#' @param maxiter the maximum number of iterations.
+#' @param family a \code{family} object: a list of functions and expressions for defining
+#' canonical link and variance functions. Families supported in \code{qif} are \code{gaussian},
+#' \code{binomial}, \code{poisson}, and \code{gamma}; see the \code{\link[stats]{glm}} and \code{\link[stats]{formula}} documentation. Some links
+#' are not currently available: probit link for binomial family and log link for
+#' gamma family.
+#' @param corstr a character string specifying the correlation structure. The
+#' following are permitted: \code{"independence"}, \code{"exchangeable"}, \code{"AR-1"} and \code{"unstructured"}.
+#' @param invfun a character string specifying the matrix inverse function. The
+#' following are permitted: \code{"finv"} and \code{"ginv"}.
+#'
+#' @return A list containing:
+#'
+#' \describe{
+#'   \item{title}{name of qif}
+#'   \item{version}{the current version of qif}
+#'   \item{model}{analysis model for link function, variance function and correlation struture}
+#'   \item{terms}{analysis model for link function, variance function and correlation struture}
+#'   \item{iteration}{the number of iterations}
+#'   \item{coefficients}{beta esitmates value}
+#'   \item{linear.perdictors}{linear predictor value}
+#'   \item{fitted.value}{fitted value of y}
+#'   \item{x}{the perdicted matrix}
+#'   \item{y}{the response}
+#'   \item{residuals}{y-mu}
+#'   \item{pearson.resi}{pearson residuals}
+#'   \item{scale}{the scale of fitted model}
+#'   \item{family}{the type of distribution}
+#'   \item{id}{model fitted value}
+#'   \item{max.id}{max number of each steps}
+#'   \item{xnames}{the values are X name of qif}
+#'   \item{statistics}{The qif statistics}
+#'   \item{Xnames}{the name X matrix in qif}
+#'   \item{parameter}{parameter estimates}
+#'   \item{covariance}{Covariance of coefficients}
+#' }
+#'
+#' @note This R package is created by transplanting a SAS macro QIF developed
+#' originally by Peter Song and Zhichang Jiang (2006). This is version 1.5 of
+#' this user documentation file, revised 2019-07-02.
+#'
+#' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
+#' of Michigan.
+#'
+#' @references
+#' Qu A, Lindsay BG, Li B. Improving generalized estimating equations using quadratic
+#' inference functions. Biometrika 2000, 87 823-836.
+#'
+#' Qu A, Song P X-K. Assessing robustness of generalised estimating equations and
+#' quadratic inference functions. Biometrika 2004, 91 447-459.
+#'
+#' Qu A, Lindsay BG. Building adaptive estimating equations when inverse of covariance
+#' estimation is difficult. J. Roy. Statist. Soc. B 2003, 65, 127-142.
+#'
+#' @examples
+#' ## Marginal log-linear model for the epileptic seizures count data
+#' (Diggle et al., 2002, Analysis of Longitudinal Data, 2nd Ed., Oxford Press).
+#'
+#' # Read in the epilepsy data set:
+#' data(epil)
+#'
+#' # Fit the QIF model:
+#' fit <- qif(y ~ baseline + trt + logage + visit, id=id, data=epil, family=poisson, corstr="AR-1")
+#'
+#' # Print summary of QIF fit:
+#' summary(fit)
+#'
+#' ## Second example: MS study
+#' data(exacerb)
+#'
+#' qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="independence")
+#'
+#' qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="AR-1")
+#'
+#' qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="exchangeable")
+#'
+#' qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="unstructured")
+#'
+#' summary(qif_BIN_CS)
+#'
+#' qif_BIN_CS$statistics
+#'
+#' qif_BIN_CS$covariance
+#'
+#' @seealso glm, lm, formula.
+#'
+#'
+#' @export
+#'
+qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NULL,
+	tol = 1e-8, maxiter = 1000, family = gaussian, corstr = "independence", invfun="finv")
 {
 
 if ((invfun!="finv")&&(invfun!="ginv")){
@@ -90,7 +196,7 @@ if (invfun=="ginv") library(MASS)
     m <- match.call(expand = FALSE)
     m$b <- m$tol <- m$maxiter <- m$link <- m$varfun <- m$corstr <- m$family <- m$invfun <- NULL
 
-    if (is.null(m$id)) 
+    if (is.null(m$id))
         m$id <- as.name("id")
 
     m[[1]] <- as.name("model.frame")
@@ -100,7 +206,7 @@ if (invfun=="ginv") library(MASS)
     x <- model.matrix(Terms, m)
 
     QR <- qr(x)
-    if (QR$rank < ncol(x)) 
+    if (QR$rank < ncol(x))
         stop("rank-deficient model matrix")
 
 #    N <- rep(1, length(y))
@@ -110,15 +216,15 @@ if (invfun=="ginv") library(MASS)
 #        y <- y[, 1]
 #    }
 #    else {
-#        if (dim(y)[2] > 1) 
+#        if (dim(y)[2] > 1)
 #            stop("Only one response (1 column)")
 #    }
 
-# only one response	
+# only one response
 #message("\n","dim(y)[2]:")
 #print(dim(y)[2])
 
-    if (dim(y)[2] > 1) 
+    if (dim(y)[2] > 1)
 	    stop("Only one response (1 column)")
 
 # ? get offset for?????
@@ -147,9 +253,9 @@ if (invfun=="ginv") library(MASS)
         dimnames(x) <- list(NULL, xnames)
     }
 
-    if (is.character(family)) 
+    if (is.character(family))
         family <- get(family)
-    if (is.function(family)) 
+    if (is.function(family))
         family <- family()
 
 # if b is not NULL then sign b to beta; otherwise, use gml to get initial beta
@@ -170,7 +276,7 @@ if (invfun=="ginv") library(MASS)
 	  print(beta)
         beta <- as.numeric(beta)
     }
-    if (length(id) != length(y)) 
+    if (length(id) != length(y))
         stop("Id and y not same length")
 
 #get the maximum number of iteration
@@ -197,25 +303,25 @@ if (invfun=="ginv") library(MASS)
     linkv <- as.integer(match(c(family$link), links, -1))
 
 # check the input parameter of family, corstr correct or not
-    if (famv < 1) 
+    if (famv < 1)
         stop("unknown family")
-    if (famv <= 4) 
+    if (famv <= 4)
         varfunv <- famv
     else varfunv <- match(family$varfun, varfuns, -1)
     varfunv <- as.integer(varfunv)
 
     corstrv <- as.integer(match(corstr, corstrs, -1))
 
-    if (linkv < 1) 
+    if (linkv < 1)
         stop("unknown link.")
-    if (varfunv < 1) 
+    if (varfunv < 1)
         stop("unknown varfun.")
-    if (corstrv < 1) 
+    if (corstrv < 1)
         stop("unknown corstr.")
 
 ### start sign value to calculation ###
-#### define: 
-# x- X matrix, 
+#### define:
+# x- X matrix,
 # y- response matrix
 # beta - coefficients of X varibles
 # id- id list
@@ -266,7 +372,7 @@ betanew <- beta
 while(betadiff > tol && iteration < maxiter)
 {
 
-   # initial value		
+   # initial value
    beta <- betanew
    if (corstr == "independence") {
 	sumg <- matrix(rep(0,np),nrow=np)
@@ -286,7 +392,7 @@ while(betadiff > tol && iteration < maxiter)
 	arsumgfirstdev <- matrix(rep(0,2*np*np),nrow=2*np)
 	firstdev <- matrix(rep(0,2*np*np),nrow=2*np)
    }
-   # one iteration	
+   # one iteration
 
 	# set unstructured correlation, m0 and m1, only good for balance cluster
    	if (corstr == "unstructured") {
@@ -296,7 +402,7 @@ while(betadiff > tol && iteration < maxiter)
 
        	loc1 <- 0
        	loc2 <- 0
-       	for (i in 1:nsub) { 
+       	for (i in 1:nsub) {
 			# set start location for next xi
  	    		loc1 <- loc2+1
 	    		loc2 <- loc1+nobs[i]-1
@@ -323,11 +429,11 @@ while(betadiff > tol && iteration < maxiter)
 
 
    # loc1 - start location for row in xi
-   # loc2 - end location for row in xi 
+   # loc2 - end location for row in xi
    loc1 <- 0
    loc2 <- 0
    for (i in 1:nsub)
-   { 
+   {
 	# set start location for next xi
 	loc1 <- loc2+1
 	loc2 <- loc1+nobs[i]-1
@@ -340,7 +446,7 @@ while(betadiff > tol && iteration < maxiter)
 
 #print(xi)
 #cat("yi=",yi, "  xi=",xi,"   ni=", ni, "\n")
-	
+
 	# set m0, m1
 	m0 <- diag(ni)
 	# set m1 by corr structure
@@ -374,7 +480,7 @@ while(betadiff > tol && iteration < maxiter)
 		fui_dev <- diag(as.vector(ui))
 		vui <- diag(as.vector(sqrt(1/ui)))
 #cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
-		
+
 	}
 	else if (dist == "Gamma") {
 		ui <- 1 / (xi %*% beta)
@@ -382,7 +488,7 @@ while(betadiff > tol && iteration < maxiter)
 		fui_dev <- -diag(as.vector(ui)) %*% diag(as.vector(ui))
 		vui <- diag(as.vector(1/ui))
 #cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
-		
+
 	}
 	else if (dist == "binomial") {
 		ui <- 1 /(1 + exp(- xi %*% beta))
@@ -390,7 +496,7 @@ while(betadiff > tol && iteration < maxiter)
 		fui_dev <- diag(as.vector(ui)) %*% diag(as.vector(1-ui))
 		vui <- diag(as.vector(sqrt(1/ui))) %*% diag(as.vector(sqrt(1/(1-ui))))
 	}
-	
+
 	# calculate gi, wi, zi, c, arsumc, arsumg, di, firstdev, arsumgfirstdev
 	# depending on corr structure
 	if (corstr == "independence") {
@@ -414,7 +520,7 @@ while(betadiff > tol && iteration < maxiter)
 
 		gi[1:np,] <- gi0
 		gi[(np+1):(2*np),] <- gi1
-	
+
 		arsumc <- arsumc + gi %*% t(gi)
 		arsumg <- arsumg + gi
 
@@ -426,7 +532,7 @@ while(betadiff > tol && iteration < maxiter)
 
 		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
 		di1 <- -(1/nsub) * zi %*% fui_dev %*% xi
-	
+
 		firstdev[1:np,] <- di0
 		firstdev[(np+1):(2*np),] <- di1
 		arsumgfirstdev <- arsumgfirstdev + firstdev
@@ -441,7 +547,7 @@ while(betadiff > tol && iteration < maxiter)
 
 		gi[1:np,] <- gi0
 		gi[(np+1):(2*np),] <- gi1
-	
+
 		arsumc <- arsumc + gi %*% t(gi)
 		arsumg <- arsumg + gi
 
@@ -460,8 +566,8 @@ if (is.na(arsumc[1,1])) {
 	}
    }
 
-   # after calculating all persons and sum them, 
-   # calculate Q, betanew, 
+   # after calculating all persons and sum them,
+   # calculate Q, betanew,
 
 if (invfun=="finv") {
   a <- arsumc
@@ -478,7 +584,7 @@ if (invfun=="finv") {
 else arcinv=ginv(arsumc)
 
    Q <- t(arsumg) %*% arcinv %*% arsumg
-   
+
    arqif1dev <- t(arsumgfirstdev) %*% arcinv %*% arsumg
    arqif2dev <- t(arsumgfirstdev) %*% arcinv %*% arsumgfirstdev
 
@@ -497,8 +603,8 @@ else invarqif2dev <- ginv(arqif2dev)
    betadiff <- abs(sum(betanew - beta))
    iteration <- iteration +1
 #cat("Q=",Q, " @betanew=",betanew, " @betadiff=",betadiff, " @iteration=",iteration,"\n")
-   
-} 
+
+}
 time2 <- date()
 #runtime <- time2-time1
 #cat("Runtime=",runtime,"\n")
@@ -575,7 +681,7 @@ time2 <- date()
 	statistics <- c(Q, np, pvalue, AIC, BIC)
       names(statistics) <- c("Q", "D.F.", "pvalue","AIC","BIC")
      fit$statistics <- statistics
-     
+
 # for beta, standarderror, Z, pvalue
 	betase <- sqrt(diag(invarqif2dev))
 	Z <- as.vector(beta)/betase
