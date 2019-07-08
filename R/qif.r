@@ -14,7 +14,6 @@
 #' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
 #' of Michigan.
 #'
-#' @example
 #'
 #' @seealso \code{\link[base]{print}} \code{\link[qif]{qif}}
 #'
@@ -67,7 +66,6 @@ print.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ...)
 #'
 #' @return The invisible object from the arguments.
 #'
-#' @example
 #'
 #' @seealso \code{\link[base]{summary}} \code{\link[qif]{qif}}
 #'
@@ -109,7 +107,6 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
 #' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
 #' of Michigan.
 #'
-#' @example
 #'
 #' @seealso \code{\link[qif]{qif}}
 #'
@@ -141,6 +138,11 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' Produces an object of class "\code{qif}" which is a Quadratic Inference Function fit
 #' of the balanced longitudinal data.
 #'
+#' \code{qif} provides two options of computing matrix inverses. The default
+#' is from Fortran math library, and the other one is generalized inverse "\code{ginv}"
+#' given in R package \code{MASS}. You can call option "\code{ginv}" through argument "\code{invfun}"
+#' in "\code{qif()}".
+#'
 #' @param formula a formula expression as for other regression models, of the form
 #' \code{response ~ predictors}. See the documentation of \code{\link[stats]{lm}}
 #' and \code{\link[stats]{formula}} for details.
@@ -164,28 +166,28 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #'
 #' @return A list containing:
 #'
-#' \describe{
-#'   \item{title}{name of qif}
-#'   \item{version}{the current version of qif}
-#'   \item{model}{analysis model for link function, variance function and correlation struture}
-#'   \item{terms}{analysis model for link function, variance function and correlation struture}
-#'   \item{iteration}{the number of iterations}
-#'   \item{coefficients}{beta esitmates value}
-#'   \item{linear.perdictors}{linear predictor value}
-#'   \item{fitted.value}{fitted value of y}
-#'   \item{x}{the perdicted matrix}
-#'   \item{y}{the response}
-#'   \item{residuals}{y-mu}
-#'   \item{pearson.resi}{pearson residuals}
-#'   \item{scale}{the scale of fitted model}
-#'   \item{family}{the type of distribution}
-#'   \item{id}{model fitted value}
-#'   \item{max.id}{max number of each steps}
-#'   \item{xnames}{the values are X name of qif}
-#'   \item{statistics}{The qif statistics}
-#'   \item{Xnames}{the name X matrix in qif}
-#'   \item{parameter}{parameter estimates}
-#'   \item{covariance}{Covariance of coefficients}
+#' \itemize{
+#'   \item{\code{title}: }{name of qif}
+#'   \item{\code{version}: }{the current version of qif}
+#'   \item{\code{model}: }{analysis model for link function, variance function and correlation struture}
+#'   \item{\code{terms}: }{analysis model for link function, variance function and correlation struture}
+#'   \item{\code{iteration}: }{the number of iterations}
+#'   \item{\code{coefficients}: }{beta esitmates value}
+#'   \item{\code{linear.perdictors}: }{linear predictor value}
+#'   \item{\code{fitted.value}: }{fitted value of y}
+#'   \item{\code{x}: }{the perdicted matrix}
+#'   \item{\code{y}: }{the response}
+#'   \item{\code{residuals}: }{y-mu}
+#'   \item{\code{pearson.resi}: }{pearson residuals}
+#'   \item{\code{scale}: }{the scale of fitted model}
+#'   \item{\code{family}: }{the type of distribution}
+#'   \item{\code{id}: }{model fitted value}
+#'   \item{\code{max.id}: }{max number of each steps}
+#'   \item{\code{xnames}: }{the values are X name of qif}
+#'   \item{\code{statistics}: }{The qif statistics}
+#'   \item{\code{Xnames}: }{the name X matrix in qif}
+#'   \item{\code{parameter}: }{parameter estimates}
+#'   \item{\code{covariance}: }{Covariance of coefficients}
 #' }
 #'
 #' @note This R package is created by transplanting a SAS macro QIF developed
@@ -207,13 +209,16 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #'
 #' @examples
 #' ## Marginal log-linear model for the epileptic seizures count data
-#' (Diggle et al., 2002, Analysis of Longitudinal Data, 2nd Ed., Oxford Press).
+#' ## (Diggle et al., 2002, Analysis of Longitudinal Data, 2nd Ed., Oxford Press).
 #'
 #' # Read in the epilepsy data set:
 #' data(epil)
 #'
 #' # Fit the QIF model:
-#' fit <- qif(y ~ baseline + trt + logage + visit, id=id, data=epil, family=poisson, corstr="AR-1")
+#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1")
+#'
+#' # Alternately, use ginv() from package MASS
+#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1", invfun = "ginv")
 #'
 #' # Print summary of QIF fit:
 #' summary(fit)
@@ -222,11 +227,8 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' data(exacerb)
 #'
 #' qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="independence")
-#'
 #' qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="AR-1")
-#'
 #' qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="exchangeable")
-#'
 #' qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="unstructured")
 #'
 #' summary(qif_BIN_CS)
@@ -236,8 +238,8 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' qif_BIN_CS$covariance
 #'
 #' @seealso glm, lm, formula.
-#'
-#'
+#' @importFrom MASS ginv
+#' @useDynLib qif
 #' @export
 #'
 qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NULL,
@@ -251,12 +253,12 @@ if ((invfun!="finv")&&(invfun!="ginv")){
 #if (invfun=="ginv") && (length(findFunction("ginv", generic = TRUE))==0) {
 #	stop("Please install library MASS first to apply the ginv function.", call. = FALSE )
 #}
-if (invfun=="ginv") library(MASS)
+if (invfun=="ginv") # library(MASS) # moved imported function to @importFrom
 
-    message("Beginning QIF function")
+    # message("Beginning QIF function")
 
     call <- match.call()
-    m <- match.call(expand = FALSE)
+    m <- match.call(expand.dots = FALSE)
     m$b <- m$tol <- m$maxiter <- m$link <- m$varfun <- m$corstr <- m$family <- m$invfun <- NULL
 
     if (is.null(m$id))
@@ -331,7 +333,7 @@ if (invfun=="ginv") library(MASS)
         # print(beta) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
     else {
-        message("\n","running glm to get initial regression estimate")
+        # message("\n","running glm to get initial regression estimate")
         mm <- match.call(expand = FALSE)
         mm$b <- mm$tol <- mm$maxiter <- mm$link <- mm$varfun <- mm$corstr <- mm$id <- mm$invfun <- NULL
         mm[[1]] <- as.name("glm")
@@ -679,7 +681,7 @@ time2 <- date()
     fit <- list()
     attr(fit, "class") <- c("qif", "glm")
     fit$title <- "QIF: Quadratic Inference Function"
-    fit$version <- "QIF function, version 1.0 modified 2009/07/30"
+    fit$version <- "QIF function, version 1.5 modified 2019/07/2"
     links <- c("Identity", "Logarithm", "Logit", "Reciprocal")
     varfuns <- c("Gaussian", "Poisson", "Binomial", "Gamma")
     corstrs <- c("Independent", "Exchangeable", "AR-1","Unstructured")
