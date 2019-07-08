@@ -10,6 +10,8 @@
 \item{object}{an object for which a summary is desired.}
 
 \item{correlation}{binary, include correlation.}
+
+\item{...}{additional arguements to be passed to \code{summary}.}
 }
 \value{
 The \code{summary.qif} object.

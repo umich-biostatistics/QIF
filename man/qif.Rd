@@ -99,10 +99,14 @@ summary(fit)
 ## Second example: MS study
 data(exacerb)
 
-qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="independence")
-qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="AR-1")
-qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="exchangeable")
-qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="unstructured")
+qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+                        data=exacerb, family=binomial, corstr="independence")
+qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+                        data=exacerb, family=binomial, corstr="AR-1")
+qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+                        data=exacerb, family=binomial, corstr="exchangeable")
+qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+                        data=exacerb, family=binomial, corstr="unstructured")
 
 summary(qif_BIN_CS)
 

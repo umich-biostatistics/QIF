@@ -101,6 +101,7 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
 #'
 #' @param object an object for which a summary is desired.
 #' @param correlation binary, include correlation.
+#' @param ... additional arguements to be passed to \code{summary}.
 #'
 #' @return The \code{summary.qif} object.
 #'
@@ -109,6 +110,7 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
 #'
 #'
 #' @seealso \code{\link[qif]{qif}}
+#'
 #'
 #' @export
 #'
@@ -226,10 +228,14 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' ## Second example: MS study
 #' data(exacerb)
 #'
-#' qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="independence")
-#' qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="AR-1")
-#' qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="exchangeable")
-#' qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id, data=exacerb, family=binomial, corstr="unstructured")
+#' qif_BIN_IND<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+#'                         data=exacerb, family=binomial, corstr="independence")
+#' qif_BIN_AR1<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+#'                         data=exacerb, family=binomial, corstr="AR-1")
+#' qif_BIN_CS<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+#'                         data=exacerb, family=binomial, corstr="exchangeable")
+#' qif_BIN_UN<-qif(exacerbation ~ treatment + time + duration + time2, id=id,
+#'                         data=exacerb, family=binomial, corstr="unstructured")
 #'
 #' summary(qif_BIN_CS)
 #'
@@ -239,6 +245,11 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #'
 #' @seealso glm, lm, formula.
 #' @importFrom MASS ginv
+#' @importFrom stats model.matrix
+#' @importFrom stats gaussian
+#' @importFrom stats model.extract
+#' @importFrom stats pchisq
+#' @importFrom stats pnorm
 #' @useDynLib qif
 #' @export
 #'
@@ -334,7 +345,7 @@ if (invfun=="ginv") # library(MASS) # moved imported function to @importFrom
     }
     else {
         # message("\n","running glm to get initial regression estimate")
-        mm <- match.call(expand = FALSE)
+        mm <- match.call(expand.dots = FALSE)
         mm$b <- mm$tol <- mm$maxiter <- mm$link <- mm$varfun <- mm$corstr <- mm$id <- mm$invfun <- NULL
         mm[[1]] <- as.name("glm")
         beta <- eval(mm, parent.frame())$coef
