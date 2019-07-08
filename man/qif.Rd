@@ -88,10 +88,12 @@ this user documentation file, revised 2019-07-02.
 data(epil)
 
 # Fit the QIF model:
-fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1")
+fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
+                                       family=poisson, corstr="AR-1")
 
 # Alternately, use ginv() from package MASS
-fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1", invfun = "ginv")
+fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
+                      family=poisson, corstr="AR-1", invfun = "ginv")
 
 # Print summary of QIF fit:
 summary(fit)

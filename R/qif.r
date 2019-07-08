@@ -108,6 +108,7 @@ print.summary.qif <- function(x, digits = NULL, quote = FALSE, prefix = "", ... 
 #' @author Zhichang Jiang, Alberta Health Services, and Peter X.K. Song, University
 #' of Michigan.
 #'
+#' @importFrom stats quantile
 #'
 #' @seealso \code{\link[qif]{qif}}
 #'
@@ -217,10 +218,12 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' data(epil)
 #'
 #' # Fit the QIF model:
-#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1")
+#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
+#'                                        family=poisson, corstr="AR-1")
 #'
 #' # Alternately, use ginv() from package MASS
-#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil, family=poisson, corstr="AR-1", invfun = "ginv")
+#' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
+#'                       family=poisson, corstr="AR-1", invfun = "ginv")
 #'
 #' # Print summary of QIF fit:
 #' summary(fit)
