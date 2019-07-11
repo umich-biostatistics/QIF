@@ -260,519 +260,522 @@ qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NU
 	tol = 1e-8, maxiter = 1000, family = gaussian, corstr = "independence", invfun="finv")
 {
 
-if ((invfun!="finv")&&(invfun!="ginv")){
-      stop("Unknown inverse function. Only finv or ginv.")
-}
+  if ((invfun!="finv")&&(invfun!="ginv")){
+    stop("Unknown inverse function. Only finv or ginv.")
+  }
 
-#if (invfun=="ginv") && (length(findFunction("ginv", generic = TRUE))==0) {
-#	stop("Please install library MASS first to apply the ginv function.", call. = FALSE )
-#}
-if (invfun=="ginv") # library(MASS) # moved imported function to @importFrom
+  #if (invfun=="ginv") && (length(findFunction("ginv", generic = TRUE))==0) {
+  #	stop("Please install library MASS first to apply the ginv function.", call. = FALSE )
+  #}
 
-    # message("Beginning QIF function")
+  #if (invfun=="ginv") # library(MASS) # moved imported function to @importFrom
 
-    call <- match.call()
-    m <- match.call(expand.dots = FALSE)
-    m$b <- m$tol <- m$maxiter <- m$link <- m$varfun <- m$corstr <- m$family <- m$invfun <- NULL
+  # message("Beginning QIF function")
 
-    if (is.null(m$id))
-        m$id <- as.name("id")
+  call <- match.call()
+  m <- match.call(expand.dots = FALSE)
+  m$b <- m$tol <- m$maxiter <- m$link <- m$varfun <- m$corstr <- m$family <- m$invfun <- NULL
 
-    m[[1]] <- as.name("model.frame")
-    m <- eval(m, parent.frame())
-    Terms <- attr(m, "terms")
-    y <- as.matrix(model.extract(m, "response"))
-    x <- model.matrix(Terms, m)
+  if (is.null(m$id))
+    m$id <- as.name("id")
 
-    QR <- qr(x)
-    if (QR$rank < ncol(x))
-        stop("rank-deficient model matrix")
+  m[[1]] <- as.name("model.frame")
+  m <- eval(m, parent.frame())
+  Terms <- attr(m, "terms")
+  y <- as.matrix(model.extract(m, "response"))
+  x <- model.matrix(Terms, m)
 
-#    N <- rep(1, length(y))
+  QR <- qr(x)
+  if (QR$rank < ncol(x))
+    stop("rank-deficient model matrix")
 
-#    if (dim(y)[2] == 2) {
-#        N <- as.vector(y %*% c(1, 1))
-#        y <- y[, 1]
-#    }
-#    else {
-#        if (dim(y)[2] > 1)
-#            stop("Only one response (1 column)")
-#    }
+  #    N <- rep(1, length(y))
 
-# only one response
-#message("\n","dim(y)[2]:")
-#print(dim(y)[2])
+  #    if (dim(y)[2] == 2) {
+  #        N <- as.vector(y %*% c(1, 1))
+  #        y <- y[, 1]
+  #    }
+  #    else {
+  #        if (dim(y)[2] > 1)
+  #            stop("Only one response (1 column)")
+  #    }
 
-    if (dim(y)[2] > 1)
-	    stop("Only one response (1 column)")
+  # only one response
+  #message("\n","dim(y)[2]:")
+  #print(dim(y)[2])
 
-# ? get offset for?????
-#    offset <- model.extract(m, offset)
-#message("\n","offset:")
-#print(offset)
+  if (dim(y)[2] > 1)
+    stop("Only one response (1 column)")
 
-# get class id
-    id <- model.extract(m, id)
-    if (is.null(id)) {
-        stop("Id variable not found")
+  # ? get offset for?????
+  #    offset <- model.extract(m, offset)
+  #message("\n","offset:")
+  #print(offset)
+
+  # get class id
+  id <- model.extract(m, id)
+  if (is.null(id)) {
+    stop("Id variable not found")
+  }
+
+  # get number of observe persons
+  nobs <- nrow(x)
+
+  # get number of parameters, include (intercept)
+  np <- ncol(x)
+
+  # get the name of X matrix colomn (variables)
+  xnames <- dimnames(x)[[2]]
+
+  # sign colomn name if not name for colomn
+  if (is.null(xnames)) {
+    xnames <- paste("x", 1:np, sep = "")
+    dimnames(x) <- list(NULL, xnames)
+  }
+
+  if (is.character(family))
+    family <- get(family)
+  if (is.function(family))
+    family <- family()
+
+  # if b is not NULL then sign b to beta; otherwise, use gml to get initial beta
+  if (!is.null(b)) {
+    beta <- matrix(as.double(b), ncol = 1)
+    if (nrow(beta) != np) {
+      stop("Dim beta != ncol(x)")
     }
+    # message("user's initial regression estimate")
+    # print(beta) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  }
+  else {
+    # message("\n","running glm to get initial regression estimate")
+    mm <- match.call(expand.dots = FALSE)
+    mm$b <- mm$tol <- mm$maxiter <- mm$link <- mm$varfun <- mm$corstr <- mm$id <- mm$invfun <- NULL
+    mm[[1]] <- as.name("glm")
+    beta <- eval(mm, parent.frame())$coef
+    # print(beta) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    beta <- as.numeric(beta)
+  }
+  if (length(id) != length(y))
+    stop("Id and y not same length")
 
-# get number of observe persons
-    nobs <- nrow(x)
+  #get the maximum number of iteration
+  maxiter <- as.integer(maxiter)
 
-# get number of parameters, include (intercept)
-    np <- ncol(x)
+  # Linkage function
+  links <- c("identity", "log", "logit", "inverse")
 
-# get the name of X matrix colomn (variables)
-    xnames <- dimnames(x)[[2]]
+  # Distribution family must be one of GAUSSIAN, POISSON, GAMMA or BIN
+  fams <- c("gaussian", "poisson", "binomial", "Gamma")
 
-# sign colomn name if not name for colomn
-    if (is.null(xnames)) {
-        xnames <- paste("x", 1:np, sep = "")
-        dimnames(x) <- list(NULL, xnames)
-    }
+  # Variance function
+  varfuns <- c("constant", "mu", "mu(1-mu)", "mu^2")
 
-    if (is.character(family))
-        family <- get(family)
-    if (is.function(family))
-        family <- family()
+  # Correlation structure variable CORR must be one of AR1, EXCH, IND or UNST
+  corstrs <- c("independence", "exchangeable", "AR-1", "unstructured")
 
-# if b is not NULL then sign b to beta; otherwise, use gml to get initial beta
-    if (!is.null(b)) {
-        beta <- matrix(as.double(b), ncol = 1)
-        if (nrow(beta) != np) {
-            stop("Dim beta != ncol(x)")
-        }
-        # message("user's initial regression estimate")
-        # print(beta) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  famv <- match(family$family, fams, -1)
+
+  dist <- family$family
+  #cat("dist=",dist,"\n")
+  #cat("corstr=",corstr,"\n")
+
+  linkv <- as.integer(match(c(family$link), links, -1))
+
+  # check the input parameter of family, corstr correct or not
+  if (famv < 1)
+    stop("unknown family")
+  if (famv <= 4)
+    varfunv <- famv
+  else varfunv <- match(family$varfun, varfuns, -1)
+  varfunv <- as.integer(varfunv)
+
+  corstrv <- as.integer(match(corstr, corstrs, -1))
+
+  if (linkv < 1)
+    stop("unknown link.")
+  if (varfunv < 1)
+    stop("unknown varfun.")
+  if (corstrv < 1)
+    stop("unknown corstr.")
+
+  ### start sign value to calculation ###
+  #### define:
+  # x- X matrix,
+  # y- response matrix
+  # beta - coefficients of X varibles
+  # id- id list
+  # uid- unique id
+  # nobs- number of rep time
+  # nsub- number of unique id
+  # np - number of parameter
+  # m0 - m0 matrix, nobs*nobs matrix, depend on correlation structure
+  # m1 - m1 matrix, nobs*nobs matrix, depend on correlation structure
+
+  # sumg - np*1 matrix for g
+  # sumc - np*np matrix for c
+  # arsumg - np*1 matrix
+  # arsumc - np*np matrix
+  # gi - np*1 matrix for i-th id
+  # arsumgfirstdev - np*np matrix for first derivative of g
+  # firstdev - np*np matrix of first derivative
+
+  # for each id:
+  # xi- i-th x
+  # yi - i-th y
+  # ni- number of row of xi
+
+  # ui- i-th mu
+  # fui - link function
+  # fui_dev - devirate of link function
+  # vui - variance of ui
+
+  ### Calculation
+
+  y <- as.matrix(y)
+  x <- as.matrix(x)
+
+  obs <- lapply(split(id, id), "length")
+  nobs <- as.numeric(obs)
+  nsub <- length(nobs)
+  np <- dim(x)[[2]]
+
+  ################ 	QIF iteration #######
+
+  time1 <- date()
+
+  betadiff <- 1
+  iteration <- 0
+  betanew <- beta
+
+  # qif iteration
+  while(betadiff > tol && iteration < maxiter)
+  {
+
+    # initial value
+    beta <- betanew
+    if (corstr == "independence") {
+      sumg <- matrix(rep(0,np),nrow=np)
+      sumc <- matrix(rep(0,np*np),nrow=np)
+      arsumg <- matrix(rep(0,np),nrow=np)
+      arsumc <- matrix(rep(0,np*np),nrow=np)
+      gi <- matrix(rep(0,np),nrow=np)
+      arsumgfirstdev <- matrix(rep(0,np*np),nrow=np)
+      firstdev <- matrix(rep(0,np*np),nrow=np)
     }
     else {
-        # message("\n","running glm to get initial regression estimate")
-        mm <- match.call(expand.dots = FALSE)
-        mm$b <- mm$tol <- mm$maxiter <- mm$link <- mm$varfun <- mm$corstr <- mm$id <- mm$invfun <- NULL
-        mm[[1]] <- as.name("glm")
-        beta <- eval(mm, parent.frame())$coef
-	  # print(beta) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        beta <- as.numeric(beta)
+      sumg <- matrix(rep(0,2*np),nrow=2*np)
+      sumc <- matrix(rep(0,2*np*2*np),nrow=2*np)
+      arsumg <- matrix(rep(0,2*np),nrow=2*np)
+      arsumc <- matrix(rep(0,2*np*2*np),nrow=2*np)
+      gi <- matrix(rep(0,2*np),nrow=2*np)
+      arsumgfirstdev <- matrix(rep(0,2*np*np),nrow=2*np)
+      firstdev <- matrix(rep(0,2*np*np),nrow=2*np)
     }
-    if (length(id) != length(y))
-        stop("Id and y not same length")
+    # one iteration
 
-#get the maximum number of iteration
-    maxiter <- as.integer(maxiter)
+    # set unstructured correlation, m0 and m1, only good for balance cluster
+    if (corstr == "unstructured") {
+      n1 <- nobs[1]
+      m0 <- diag(n1)
+      m1 <- matrix(rep(0,n1*n1),n1)
 
-# Linkage function
-    links <- c("identity", "log", "logit", "inverse")
+      loc1 <- 0
+      loc2 <- 0
+      for (i in 1:nsub) {
+        # set start location for next xi
+        loc1 <- loc2+1
+        loc2 <- loc1+nobs[i]-1
+        yi <- as.matrix(y[loc1:loc2,])
+        xi <- x[loc1:loc2,]
+        ni <- nrow(yi)
 
-# Distribution family must be one of GAUSSIAN, POISSON, GAMMA or BIN
-    fams <- c("gaussian", "poisson", "binomial", "Gamma")
-
-# Variance function
-    varfuns <- c("constant", "mu", "mu(1-mu)", "mu^2")
-
-# Correlation structure variable CORR must be one of AR1, EXCH, IND or UNST
-    corstrs <- c("independence", "exchangeable", "AR-1", "unstructured")
-
-    famv <- match(family$family, fams, -1)
-
-	dist <- family$family
-#cat("dist=",dist,"\n")
-#cat("corstr=",corstr,"\n")
-
-    linkv <- as.integer(match(c(family$link), links, -1))
-
-# check the input parameter of family, corstr correct or not
-    if (famv < 1)
-        stop("unknown family")
-    if (famv <= 4)
-        varfunv <- famv
-    else varfunv <- match(family$varfun, varfuns, -1)
-    varfunv <- as.integer(varfunv)
-
-    corstrv <- as.integer(match(corstr, corstrs, -1))
-
-    if (linkv < 1)
-        stop("unknown link.")
-    if (varfunv < 1)
-        stop("unknown varfun.")
-    if (corstrv < 1)
-        stop("unknown corstr.")
-
-### start sign value to calculation ###
-#### define:
-# x- X matrix,
-# y- response matrix
-# beta - coefficients of X varibles
-# id- id list
-# uid- unique id
-# nobs- number of rep time
-# nsub- number of unique id
-# np - number of parameter
-# m0 - m0 matrix, nobs*nobs matrix, depend on correlation structure
-# m1 - m1 matrix, nobs*nobs matrix, depend on correlation structure
-
-# sumg - np*1 matrix for g
-# sumc - np*np matrix for c
-# arsumg - np*1 matrix
-# arsumc - np*np matrix
-# gi - np*1 matrix for i-th id
-# arsumgfirstdev - np*np matrix for first derivative of g
-# firstdev - np*np matrix of first derivative
-
-# for each id:
-# xi- i-th x
-# yi - i-th y
-# ni- number of row of xi
-
-# ui- i-th mu
-# fui - link function
-# fui_dev - devirate of link function
-# vui - variance of ui
-
-### Calculation
-
-y <- as.matrix(y)
-x <- as.matrix(x)
-
-obs <- lapply(split(id, id), "length")
-nobs <- as.numeric(obs)
-nsub <- length(nobs)
-np <- dim(x)[[2]]
-
-################ 	QIF iteration #######
-
-time1 <- date()
-
-betadiff <- 1
-iteration <- 0
-betanew <- beta
-
-# qif iteration
-while(betadiff > tol && iteration < maxiter)
-{
-
-   # initial value
-   beta <- betanew
-   if (corstr == "independence") {
-	sumg <- matrix(rep(0,np),nrow=np)
-	sumc <- matrix(rep(0,np*np),nrow=np)
-	arsumg <- matrix(rep(0,np),nrow=np)
-	arsumc <- matrix(rep(0,np*np),nrow=np)
-	gi <- matrix(rep(0,np),nrow=np)
-	arsumgfirstdev <- matrix(rep(0,np*np),nrow=np)
-	firstdev <- matrix(rep(0,np*np),nrow=np)
-   }
-   else {
-	sumg <- matrix(rep(0,2*np),nrow=2*np)
-	sumc <- matrix(rep(0,2*np*2*np),nrow=2*np)
-	arsumg <- matrix(rep(0,2*np),nrow=2*np)
-	arsumc <- matrix(rep(0,2*np*2*np),nrow=2*np)
-	gi <- matrix(rep(0,2*np),nrow=2*np)
-	arsumgfirstdev <- matrix(rep(0,2*np*np),nrow=2*np)
-	firstdev <- matrix(rep(0,2*np*np),nrow=2*np)
-   }
-   # one iteration
-
-	# set unstructured correlation, m0 and m1, only good for balance cluster
-   	if (corstr == "unstructured") {
-	 	n1 <- nobs[1]
-	 	m0 <- diag(n1)
-       	m1 <- matrix(rep(0,n1*n1),n1)
-
-       	loc1 <- 0
-       	loc2 <- 0
-       	for (i in 1:nsub) {
-			# set start location for next xi
- 	    		loc1 <- loc2+1
-	    		loc2 <- loc1+nobs[i]-1
-	    		yi <- as.matrix(y[loc1:loc2,])
-	    		xi <- x[loc1:loc2,]
-	    		ni <- nrow(yi)
-
-	            if (dist == "gaussian") {
-				ui <- xi %*% beta
-	    		}
-	    		else if (dist == "poisson") {
-		  		ui <- exp(xi %*% beta)
-	    		}
-	    		else if (dist == "Gamma") {
-		  		ui <- 1 / (xi %*% beta)
-	    		}
-	    		else if (dist == "binomial") {
-		  		ui <- 1 /(1 + exp(- xi %*% beta))
-	    		}
-          		m1 <- m1 + (yi-ui) %*% t(yi-ui)
-       	}
-       	m1 <- 1/nsub * m1
-   	}
+        if (dist == "gaussian") {
+          ui <- xi %*% beta
+        }
+        else if (dist == "poisson") {
+          ui <- exp(xi %*% beta)
+        }
+        else if (dist == "Gamma") {
+          ui <- 1 / (xi %*% beta)
+        }
+        else if (dist == "binomial") {
+          ui <- 1 /(1 + exp(- xi %*% beta))
+        }
+        m1 <- m1 + (yi-ui) %*% t(yi-ui)
+      }
+      m1 <- 1/nsub * m1
+    }
 
 
-   # loc1 - start location for row in xi
-   # loc2 - end location for row in xi
-   loc1 <- 0
-   loc2 <- 0
-   for (i in 1:nsub)
-   {
-	# set start location for next xi
-	loc1 <- loc2+1
-	loc2 <- loc1+nobs[i]-1
-#cat("loc1=",loc1, "  loc2=",loc2,"\n")
+    # loc1 - start location for row in xi
+    # loc2 - end location for row in xi
+    loc1 <- 0
+    loc2 <- 0
+    for (i in 1:nsub)
+    {
+      # set start location for next xi
+      loc1 <- loc2+1
+      loc2 <- loc1+nobs[i]-1
+      #cat("loc1=",loc1, "  loc2=",loc2,"\n")
 
 
-	yi <- as.matrix(y[loc1:loc2,])
-	xi <- x[loc1:loc2,]
-	ni <- nrow(yi)
+      yi <- as.matrix(y[loc1:loc2,])
+      xi <- x[loc1:loc2,]
+      ni <- nrow(yi)
 
-#print(xi)
-#cat("yi=",yi, "  xi=",xi,"   ni=", ni, "\n")
+      #print(xi)
+      #cat("yi=",yi, "  xi=",xi,"   ni=", ni, "\n")
 
-	# set m0, m1
-	m0 <- diag(ni)
-	# set m1 by corr structure
-	if (corstr == "independence") {
-		m1 <- matrix(rep(0,ni*ni),ni)
-	}
-	else if (corstr == "exchangeable") {
-		m1 <- matrix(rep(1,ni*ni),ni) - m0
-	}
-	else if (corstr == "AR-1") {
-		m1 <- matrix(rep(0,ni*ni),ni)
-		for (k in 1:ni) {
-		   for (l in 1:ni) {
-			if (abs(k-l)==1) m1[k,l] <-1
-		   }
-		}
-	}
+      # set m0, m1
+      m0 <- diag(ni)
+      # set m1 by corr structure
+      if (corstr == "independence") {
+        m1 <- matrix(rep(0,ni*ni),ni)
+      }
+      else if (corstr == "exchangeable") {
+        m1 <- matrix(rep(1,ni*ni),ni) - m0
+      }
+      else if (corstr == "AR-1") {
+        m1 <- matrix(rep(0,ni*ni),ni)
+        for (k in 1:ni) {
+          for (l in 1:ni) {
+            if (abs(k-l)==1) m1[k,l] <-1
+          }
+        }
+      }
 
-	# change ui, fui, fui_dev, vui depending on distribution
-	if (dist == "gaussian") {
-		ui <- xi %*% beta
-		fui <- ui
-		fui_dev <- diag(ni)
-		vui <- diag(ni)
-#cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
+      # change ui, fui, fui_dev, vui depending on distribution
+      if (dist == "gaussian") {
+        ui <- xi %*% beta
+        fui <- ui
+        fui_dev <- diag(ni)
+        vui <- diag(ni)
+        #cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
 
-	}
-	else if (dist == "poisson") {
-		ui <- exp(xi %*% beta)
-		fui <- log(ui)
-		fui_dev <- diag(as.vector(ui))
-		vui <- diag(as.vector(sqrt(1/ui)))
-#cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
+      }
+      else if (dist == "poisson") {
+        ui <- exp(xi %*% beta)
+        fui <- log(ui)
+        fui_dev <- diag(as.vector(ui))
+        vui <- diag(as.vector(sqrt(1/ui)))
+        #cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
 
-	}
-	else if (dist == "Gamma") {
-		ui <- 1 / (xi %*% beta)
-		fui <- 1 / ui
-		fui_dev <- -diag(as.vector(ui)) %*% diag(as.vector(ui))
-		vui <- diag(as.vector(1/ui))
-#cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
+      }
+      else if (dist == "Gamma") {
+        ui <- 1 / (xi %*% beta)
+        fui <- 1 / ui
+        fui_dev <- -diag(as.vector(ui)) %*% diag(as.vector(ui))
+        vui <- diag(as.vector(1/ui))
+        #cat("ui=",ui, " @fui=",fui, " @fui_dev=",fui_dev, " @vui=",vui," @i=",i,"\n")
 
-	}
-	else if (dist == "binomial") {
-		ui <- 1 /(1 + exp(- xi %*% beta))
-		fui <- log(ui) - log(1-ui)
-		fui_dev <- diag(as.vector(ui)) %*% diag(as.vector(1-ui))
-		vui <- diag(as.vector(sqrt(1/ui))) %*% diag(as.vector(sqrt(1/(1-ui))))
-	}
+      }
+      else if (dist == "binomial") {
+        ui <- 1 /(1 + exp(- xi %*% beta))
+        fui <- log(ui) - log(1-ui)
+        fui_dev <- diag(as.vector(ui)) %*% diag(as.vector(1-ui))
+        vui <- diag(as.vector(sqrt(1/ui))) %*% diag(as.vector(sqrt(1/(1-ui))))
+      }
 
-	# calculate gi, wi, zi, c, arsumc, arsumg, di, firstdev, arsumgfirstdev
-	# depending on corr structure
-	if (corstr == "independence") {
-		wi <- t(xi) %*% fui_dev %*% vui %*% m0 %*% vui
-		gi0 <- (1/nsub)*wi %*% (yi-ui)
-		gi[1:np,] <- gi0
-		arsumc <- arsumc + gi %*% t(gi)
-		arsumg <- arsumg + gi
+      # calculate gi, wi, zi, c, arsumc, arsumg, di, firstdev, arsumgfirstdev
+      # depending on corr structure
+      if (corstr == "independence") {
+        wi <- t(xi) %*% fui_dev %*% vui %*% m0 %*% vui
+        gi0 <- (1/nsub)*wi %*% (yi-ui)
+        gi[1:np,] <- gi0
+        arsumc <- arsumc + gi %*% t(gi)
+        arsumg <- arsumg + gi
 
-		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
-		firstdev[1:np,] <- di0
-		arsumgfirstdev <- arsumgfirstdev + firstdev
-	}
+        di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
+        firstdev[1:np,] <- di0
+        arsumgfirstdev <- arsumgfirstdev + firstdev
+      }
 
-	else if (corstr == "unstructured") {
-		wi <- t(xi) %*% fui_dev %*% m0
-		zi <- t(xi) %*% fui_dev %*% m1
+      else if (corstr == "unstructured") {
+        wi <- t(xi) %*% fui_dev %*% m0
+        zi <- t(xi) %*% fui_dev %*% m1
 
-		gi0 <- (1/nsub)*wi %*% (yi-ui)
-		gi1 <- (1/nsub)*zi %*% (yi-ui)
+        gi0 <- (1/nsub)*wi %*% (yi-ui)
+        gi1 <- (1/nsub)*zi %*% (yi-ui)
 
-		gi[1:np,] <- gi0
-		gi[(np+1):(2*np),] <- gi1
+        gi[1:np,] <- gi0
+        gi[(np+1):(2*np),] <- gi1
 
-		arsumc <- arsumc + gi %*% t(gi)
-		arsumg <- arsumg + gi
+        arsumc <- arsumc + gi %*% t(gi)
+        arsumg <- arsumg + gi
 
-		if (is.na(arsumc[1,1])) {
-			# print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-			# print(gi)
-			# print(arsumc)
-		}
+        if (is.na(arsumc[1,1])) {
+          # print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          # print(gi)
+          # print(arsumc)
+        }
 
-		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
-		di1 <- -(1/nsub) * zi %*% fui_dev %*% xi
+        di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
+        di1 <- -(1/nsub) * zi %*% fui_dev %*% xi
 
-		firstdev[1:np,] <- di0
-		firstdev[(np+1):(2*np),] <- di1
-		arsumgfirstdev <- arsumgfirstdev + firstdev
-	}
+        firstdev[1:np,] <- di0
+        firstdev[(np+1):(2*np),] <- di1
+        arsumgfirstdev <- arsumgfirstdev + firstdev
+      }
 
-	else {
-		wi <- t(xi) %*% fui_dev %*% vui %*% m0 %*% vui
-		zi <- t(xi) %*% fui_dev %*% vui %*% m1 %*% vui
+      else {
+        wi <- t(xi) %*% fui_dev %*% vui %*% m0 %*% vui
+        zi <- t(xi) %*% fui_dev %*% vui %*% m1 %*% vui
 
-		gi0 <- (1/nsub)*wi %*% (yi-ui)
-		gi1 <- (1/nsub)*zi %*% (yi-ui)
+        gi0 <- (1/nsub)*wi %*% (yi-ui)
+        gi1 <- (1/nsub)*zi %*% (yi-ui)
 
-		gi[1:np,] <- gi0
-		gi[(np+1):(2*np),] <- gi1
+        gi[1:np,] <- gi0
+        gi[(np+1):(2*np),] <- gi1
 
-		arsumc <- arsumc + gi %*% t(gi)
-		arsumg <- arsumg + gi
+        arsumc <- arsumc + gi %*% t(gi)
+        arsumg <- arsumg + gi
 
-if (is.na(arsumc[1,1])) {
-	# print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	# print(gi)
-	# print(arsumc)
-}
+        if (is.na(arsumc[1,1])) {
+          # print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          # print(gi)
+          # print(arsumc)
+        }
 
-		di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
-		di1 <- -(1/nsub) * zi %*% fui_dev %*% xi
+        di0 <- -(1/nsub) * wi %*% fui_dev %*% xi
+        di1 <- -(1/nsub) * zi %*% fui_dev %*% xi
 
-		firstdev[1:np,] <- di0
-		firstdev[(np+1):(2*np),] <- di1
-		arsumgfirstdev <- arsumgfirstdev + firstdev
-	}
-   }
+        firstdev[1:np,] <- di0
+        firstdev[(np+1):(2*np),] <- di1
+        arsumgfirstdev <- arsumgfirstdev + firstdev
+      }
+    }
 
-   # after calculating all persons and sum them,
-   # calculate Q, betanew,
+    # after calculating all persons and sum them,
+    # calculate Q, betanew,
 
-if (invfun=="finv") {
-  a <- arsumc
-  storage.mode(a)<-"double"
-  lda<-as.integer(nrow(a))
-  n<-as.integer(ncol(a))
-  #print("a:")
-  #print(a)
-  z <- .Fortran("finv", a=a, lda, n)
-  arcinv <- z$a
-  #print("a inv:")
-  #print(arcinv)
-}
-else arcinv=ginv(arsumc)
+    if (invfun=="finv") {
+      a <- arsumc
+      storage.mode(a)<-"double"
+      lda<-as.integer(nrow(a))
+      n<-as.integer(ncol(a))
+      #print("a:")
+      #print(a)
+      z <- .Fortran("finv", a=a, lda, n)
+      arcinv <- z$a
+      #print("a inv:")
+      #print(arcinv)
+    }
+    else arcinv=ginv(arsumc)
 
-   Q <- t(arsumg) %*% arcinv %*% arsumg
+    Q <- t(arsumg) %*% arcinv %*% arsumg
 
-   arqif1dev <- t(arsumgfirstdev) %*% arcinv %*% arsumg
-   arqif2dev <- t(arsumgfirstdev) %*% arcinv %*% arsumgfirstdev
+    arqif1dev <- t(arsumgfirstdev) %*% arcinv %*% arsumg
+    arqif2dev <- t(arsumgfirstdev) %*% arcinv %*% arsumgfirstdev
 
 
-if (invfun=="finv") {
-  a <- arqif2dev
-  storage.mode(a)<-"double"
-  lda<-as.integer(nrow(a))
-  n<-as.integer(ncol(a))
-  z <- .Fortran("finv", a=a, lda, n)
-  invarqif2dev <- z$a
-}
-else invarqif2dev <- ginv(arqif2dev)
+    if (invfun=="finv") {
+      a <- arqif2dev
+      storage.mode(a)<-"double"
+      lda<-as.integer(nrow(a))
+      n<-as.integer(ncol(a))
+      z <- .Fortran("finv", a=a, lda, n)
+      invarqif2dev <- z$a
+    }
+    else invarqif2dev <- ginv(arqif2dev)
 
-   betanew <- beta - invarqif2dev %*% arqif1dev
-   betadiff <- abs(sum(betanew - beta))
-   iteration <- iteration +1
-#cat("Q=",Q, " @betanew=",betanew, " @betadiff=",betadiff, " @iteration=",iteration,"\n")
+    betanew <- beta - invarqif2dev %*% arqif1dev
+    betadiff <- abs(sum(betanew - beta))
+    iteration <- iteration +1
+    #cat("Q=",Q, " @betanew=",betanew, " @betadiff=",betadiff, " @iteration=",iteration,"\n")
 
-}
-time2 <- date()
-#runtime <- time2-time1
-#cat("Runtime=",runtime,"\n")
-#cat("time1=",time1, " @time2=",time2,"\n")
+  }
 
-################  QIF end   ###########
 
-################ Output QIF parameter estimate and feacture  #########
-    fit <- list()
-    attr(fit, "class") <- c("qif", "glm")
-    fit$title <- "QIF: Quadratic Inference Function"
-    fit$version <- "QIF function, version 1.5 modified 2019/07/2"
-    links <- c("Identity", "Logarithm", "Logit", "Reciprocal")
-    varfuns <- c("Gaussian", "Poisson", "Binomial", "Gamma")
-    corstrs <- c("Independent", "Exchangeable", "AR-1","Unstructured")
-    fit$model <- list()
-    fit$model$link <- links[linkv]
-    fit$model$varfun <- varfuns[varfunv]
-    fit$model$corstr <- corstrs[corstrv]
-    fit$terms <- Terms
-    fit$formula <- as.vector(attr(Terms, "formula"))
-    fit$call <- call
-    fit$nobs <- nobs
-    fit$iteration <- iteration
-    fit$coefficients <- as.vector(beta)
-    names(fit$coefficients) <- xnames
-    fit$linear.predictors <- as.matrix(x %*% beta)
+  time2 <- date()
+  #runtime <- time2-time1
+  #cat("Runtime=",runtime,"\n")
+  #cat("time1=",time1, " @time2=",time2,"\n")
+
+  ################  QIF end   ###########
+
+  ################ Output QIF parameter estimate and feacture  #########
+  fit <- list()
+  attr(fit, "class") <- c("qif", "glm")
+  fit$title <- "QIF: Quadratic Inference Function"
+  fit$version <- "QIF function, version 1.5 modified 2019/07/2"
+  links <- c("Identity", "Logarithm", "Logit", "Reciprocal")
+  varfuns <- c("Gaussian", "Poisson", "Binomial", "Gamma")
+  corstrs <- c("Independent", "Exchangeable", "AR-1","Unstructured")
+  fit$model <- list()
+  fit$model$link <- links[linkv]
+  fit$model$varfun <- varfuns[varfunv]
+  fit$model$corstr <- corstrs[corstrv]
+  fit$terms <- Terms
+  fit$formula <- as.vector(attr(Terms, "formula"))
+  fit$call <- call
+  fit$nobs <- nobs
+  fit$iteration <- iteration
+  fit$coefficients <- as.vector(beta)
+  names(fit$coefficients) <- xnames
+  fit$linear.predictors <- as.matrix(x %*% beta)
   # for mu
-	if (dist == "gaussian") {
-		mu <- x %*% beta
-		pearson <- y - mu
-	}
-	else if (dist == "poisson") {
-		mu <- exp(x %*% beta)
-		pearson <- (y - mu) / sqrt(mu)
-	}
-	else if (dist == "Gamma") {
-		mu <- 1 / (x %*% beta)
-		pearson <- (y - mu) / mu
-	}
-	else if (dist == "binomial") {
-		mu <- 1 /(1 + exp(- x %*% beta))
-		pearson <- (y - mu) / sqrt(mu * (1-mu))
-	}
-     fit$fitted.value <- as.matrix(mu)
-     fit$residuals <- y - mu
-     fit$pearson.resi <- pearson
+  if (dist == "gaussian") {
+    mu <- x %*% beta
+    pearson <- y - mu
+  }
+  else if (dist == "poisson") {
+    mu <- exp(x %*% beta)
+    pearson <- (y - mu) / sqrt(mu)
+  }
+  else if (dist == "Gamma") {
+    mu <- 1 / (x %*% beta)
+    pearson <- (y - mu) / mu
+  }
+  else if (dist == "binomial") {
+    mu <- 1 /(1 + exp(- x %*% beta))
+    pearson <- (y - mu) / sqrt(mu * (1-mu))
+  }
+  fit$fitted.value <- as.matrix(mu)
+  fit$residuals <- y - mu
+  fit$pearson.resi <- pearson
 
-# scale value estimate
-     fit$scale <- sum(pearson**2)/(length(y)-length(beta))
+  # scale value estimate
+  fit$scale <- sum(pearson**2)/(length(y)-length(beta))
 
-     fit$family <- family
-     fit$y <- y
-     fit$x <- x
-     fit$id <- unique(id)
-     fit$max.id <- max(nobs)
-     fit$xnames <- xnames
+  fit$family <- family
+  fit$y <- y
+  fit$x <- x
+  fit$id <- unique(id)
+  fit$max.id <- max(nobs)
+  fit$xnames <- xnames
 
-# for QIF goodness of fit test
+  # for QIF goodness of fit test
 
-# TGI: trace of inverse matrix of variance matrix
-#tgi <- sum(diag(arqif2dev))
-#print(tgi)
+  # TGI: trace of inverse matrix of variance matrix
+  #tgi <- sum(diag(arqif2dev))
+  #print(tgi)
 
-	pvalue <- 1 - pchisq(Q,np)
-	if (corstr == "indenpendence") {
-		AIC <- Q
-		BIC <- Q
-	}
-	else {
-		AIC <- Q + 2*np
-		BIC <- Q + np*log(nsub)
-	}
-	statistics <- c(Q, np, pvalue, AIC, BIC)
-      names(statistics) <- c("Q", "D.F.", "pvalue","AIC","BIC")
-     fit$statistics <- statistics
+  pvalue <- 1 - pchisq(Q,np)
+  if (corstr == "indenpendence") {
+    AIC <- Q
+    BIC <- Q
+  }
+  else {
+    AIC <- Q + 2*np
+    BIC <- Q + np*log(nsub)
+  }
+  statistics <- c(Q, np, pvalue, AIC, BIC)
+  names(statistics) <- c("Q", "D.F.", "pvalue","AIC","BIC")
+  fit$statistics <- statistics
 
-# for beta, standarderror, Z, pvalue
-	betase <- sqrt(diag(invarqif2dev))
-	Z <- as.vector(beta)/betase
-	betapvalue <- 2*(1-pnorm(abs(Z)))
-	parameter <- cbind(beta, betase, Z, betapvalue)
-	dimnames(parameter)[[2]] <- c("estimate", "stderr", "Z", "pvalue")
-	dimnames(parameter)[[1]] <- xnames
-	fit$parameter <- parameter
+  # for beta, standarderror, Z, pvalue
+  betase <- sqrt(diag(invarqif2dev))
+  Z <- as.vector(beta)/betase
+  betapvalue <- 2*(1-pnorm(abs(Z)))
+  parameter <- cbind(beta, betase, Z, betapvalue)
+  dimnames(parameter)[[2]] <- c("estimate", "stderr", "Z", "pvalue")
+  dimnames(parameter)[[1]] <- xnames
+  fit$parameter <- parameter
 
-# covariance matrix
-	dimnames(invarqif2dev)[[1]] <- xnames
-	dimnames(invarqif2dev)[[2]] <- xnames
-	fit$covariance <- invarqif2dev
-	fit
+  # covariance matrix
+  dimnames(invarqif2dev)[[1]] <- xnames
+  dimnames(invarqif2dev)[[2]] <- xnames
+  fit$covariance <- invarqif2dev
+  fit
 }
