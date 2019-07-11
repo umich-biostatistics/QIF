@@ -220,14 +220,14 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' # Fit the QIF model:
 #' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
 #'                                        family=poisson, corstr="AR-1")
-#'
+#' \dontrun{
 #' # Alternately, use ginv() from package MASS
 #' fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
 #'                       family=poisson, corstr="AR-1", invfun = "ginv")
-#'
+#' }
 #' # Print summary of QIF fit:
 #' summary(fit)
-#'
+#' \dontrun{
 #' ## Second example: MS study
 #' data(exacerb)
 #'
@@ -245,6 +245,7 @@ summary.qif <- function(object, correlation = TRUE, ...)
 #' qif_BIN_CS$statistics
 #'
 #' qif_BIN_CS$covariance
+#' }
 #'
 #' @seealso glm, lm, formula.
 #' @importFrom MASS ginv
@@ -605,7 +606,7 @@ qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NU
         arsumg <- arsumg + gi
 
         if (is.na(arsumc[1,1])) {
-          # print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          # print(iteration) # Commented out printing outside of print() methods
           # print(gi)
           # print(arsumc)
         }
@@ -632,7 +633,7 @@ qif <- function (formula = formula(data), id = id, data = parent.frame(), b = NU
         arsumg <- arsumg + gi
 
         if (is.na(arsumc[1,1])) {
-          # print(iteration) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          # print(iteration) # Commented out printing outside of print() methods
           # print(gi)
           # print(arsumc)
         }

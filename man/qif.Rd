@@ -90,14 +90,14 @@ data(epil)
 # Fit the QIF model:
 fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
                                        family=poisson, corstr="AR-1")
-
+\dontrun{
 # Alternately, use ginv() from package MASS
 fit <- qif(y ~ base + trt + lage + V4, id=subject, data=epil,
                       family=poisson, corstr="AR-1", invfun = "ginv")
-
+}
 # Print summary of QIF fit:
 summary(fit)
-
+\dontrun{
 ## Second example: MS study
 data(exacerb)
 
@@ -115,6 +115,7 @@ summary(qif_BIN_CS)
 qif_BIN_CS$statistics
 
 qif_BIN_CS$covariance
+}
 
 }
 \references{
