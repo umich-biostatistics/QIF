@@ -9,10 +9,12 @@ Authors@R: c(
 Depends: R (>= 3.5.0)
 Description: Developed to perform the estimation and inference for regression 
     coefficient parameters in longitudinal marginal models using the method of 
-    quadratic inference functions. The estimates are found by the Newton-Raphson 
-    algorithm. Like generalized estimating equations, this method is also a 
-    quasi-likelihood inference method. Based on Qu, A., Lindsay, B.G. and Li, B. 
-    (2000).
+    quadratic inference functions. Like generalized estimating equations, this 
+    method is also a quasi-likelihood inference method. It has been showed that 
+    the method gives consistent estimators of the regression coefficients even if 
+    the correlation structure is misspecified, and it is more efficient than GEE 
+    when the correlation structure is misspecified. Based on Qu, A., Lindsay, 
+    B.G. and Li, B. (2000).
 Imports: MASS
 License: GPL-2
 Packaged: 2014-10-19 05:55:52 UTC; DJ
